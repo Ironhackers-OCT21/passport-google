@@ -43,12 +43,62 @@ app.use(session({
 }));
 
 
+// ----------------------------------------------------
+//Things we did for GOOGLE AUTH 
+
+const passport = require("passport");
+const UserModel = require('./models/User.model')
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+ 
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, cb) => cb(null, user._id));
+ 
+passport.deserializeUser((id, cb) => {
+  UserModel.findById(id)
+    .then(user => cb(null, user))
+    .catch(err => cb(err));
+});
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      callbackURL: "/auth/google/callback"
+    },
+    (accessToken, refreshToken, profile, done) => {
+      // to see the structure of the data in received response:
+      console.log("Google account details:", profile);
+ 
+      UserModel.findOne({ googleID: profile.id })
+        .then(user => {
+          if (user) {
+            done(null, user);
+            return;
+          }
+ 
+          UserModel.create({ googleID: profile.id })
+            .then(newUser => {
+              done(null, newUser);
+            })
+            .catch(err => done(err)); // closes User.create()
+        })
+        .catch(err => done(err)); // closes User.findOne()
+    }
+  )
+);
+
+// ----------------------------------------------------
+
 
 // 👇 Start handling routes here
 const index = require("./routes/index");
 app.use("/", index);
 
-const authRoutes = require('./routes/auth.routes')
+const authRoutes = require('./routes/auth.routes');
+
 app.use("/", authRoutes);
 // ❗ To handle errors. Routes that don't exist or errors that you handle in specific routes
 require("./error-handling")(app);

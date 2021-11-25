@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const UserModel = require('../models/User.model')
 const bcrypt = require('bcryptjs');
+const passport = require("passport");
 
 
 // Handles GET requests to /signin and shows a form
@@ -121,6 +122,34 @@ router.get('/logout', (req, res, next) => {
     req.session.destroy()
     res.redirect('/signin')
 })
+
+
+//GOOGLE ROUTES 
+
+router.get('/private-page', (req, res, next) => {
+  console.log('Sesssionnnnn', req.session)
+  res.send('Google works')
+})
+
+router.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
+  })
+);
+
+router.get(
+  "/auth/google/callback",
+  passport.authenticate("google", {
+    successRedirect: "/private-page",
+    failureRedirect: "/signin" // here you would redirect to the login page using traditional login approach
+  })
+);
+
+
 
 module.exports = router;
 
